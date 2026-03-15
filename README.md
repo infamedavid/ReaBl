@@ -1,4 +1,4 @@
-![Logo]([https://github.com/infamedavid/seta_motion/blob/main/seta_motion.png](https://github.com/infamedavid/ReaBl/blob/main/ReaBl.png?raw=true))
+![Logo]([https://github.com/infamedavid/ReaBl/blob/main/ReaBl.png])
 
 
 
