@@ -19,6 +19,7 @@ ReaBL is the studio-grade pipeline between Blender and REAPER for professional s
 - Gives Blender studios a real scoring and synchronization workflow
 - Removes the gap between animation timing and professional audio production
 - Makes professional sync part of the Blender pipeline, not an afterthought
+- Connects animation timing, scoring, and foley inside one synchronized workflow
 
 ReaBL establishes a new production standard for professional synchronization and scoring in Blender-based studios.
 
