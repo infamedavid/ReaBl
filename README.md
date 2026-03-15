@@ -14,7 +14,7 @@ ReaBL is the studio-grade pipeline between Blender and REAPER for professional s
 - Makes Blender more effective across the full production workflow
 - Supports both solo creators and multi-machine studio setups
 
-## Production impact
+## For Studio Productions
 
 - Gives Blender studios a real scoring and synchronization workflow
 - Removes the gap between animation timing and professional audio production
