@@ -1,4 +1,4 @@
-[![Watch the video]([https://img.youtube.com/vi/MD7SQRCUT_0/maxresdefault.jpg)](https://youtu.be/MD7SQRCUT_0](https://youtu.be/I_af_8Z5MCo?si=Xx6l628WohXSmlnf)) 
+[![Watch the video](https://img.youtube.com/vi/I_af_8Z5MCo/hqdefault.jpg)](https://youtu.be/I_af_8Z5MCo)
 
 # ReaBL
 
