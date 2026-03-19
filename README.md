@@ -1,6 +1,4 @@
-![Logo](https://github.com/infamedavid/ReaBl/blob/main/ReaBl.png)
-
-
+[![Watch the video]([https://img.youtube.com/vi/MD7SQRCUT_0/maxresdefault.jpg)](https://youtu.be/MD7SQRCUT_0](https://youtu.be/I_af_8Z5MCo?si=Xx6l628WohXSmlnf)) 
 
 # ReaBL
 
