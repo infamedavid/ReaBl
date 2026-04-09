@@ -32,7 +32,6 @@ def draw_reabl_ui(layout, context):
     col.enabled = deps_ok
     col.prop(props, "sync_enabled")
     col.prop(props, "osc_port")
-    col.prop(props, "overlay_enabled")
 
     layout.separator()
 
@@ -79,6 +78,39 @@ def draw_reabl_ui(layout, context):
 
     if playback_mode == "BLENDER":
         box.prop(scene, "sync_mode", text="Sync")
+
+    layout.separator()
+
+    # ------------------------------------------------------------
+    # Overlay
+    # ------------------------------------------------------------
+    box = layout.box()
+    box.enabled = deps_ok
+    box.label(text="Overlay")
+
+    col = box.column(align=True)
+    col.prop(props, "overlay_enabled")
+    col.prop(props, "overlay_in_viewport")
+    col.prop(props, "overlay_in_vse_preview")
+    col.prop(props, "overlay_font_size")
+    col.prop(props, "overlay_margin_x")
+    col.prop(props, "overlay_margin_y")
+
+    content = box.column(align=True)
+    content.label(text="Content")
+    content.prop(props, "overlay_show_timecode")
+    content.prop(props, "overlay_show_marker_popup")
+    content.prop(props, "overlay_show_sync_status")
+
+    debug = box.column(align=True)
+    debug.label(text="Debug")
+    debug.prop(props, "overlay_show_remote_transport")
+    debug.prop(props, "overlay_show_remote_time_raw")
+    debug.prop(props, "overlay_show_signal_age")
+    debug.prop(props, "overlay_show_desync")
+    debug.prop(props, "overlay_show_playback_mode")
+    debug.prop(props, "overlay_show_push_guard_state")
+    debug.prop(props, "overlay_show_last_error")
 
     layout.separator()
 
