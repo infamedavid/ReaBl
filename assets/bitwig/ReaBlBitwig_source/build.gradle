@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.infamedavid'
+version = '0.3.0'
+
+repositories {
+    maven {
+        url = uri('https://maven.bitwig.com/')
+    }
+}
+
+dependencies {
+    implementation 'com.bitwig:extension-api:25'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+jar {
+    archiveFileName = 'ReaBlBitwig.bwextension'
+}
