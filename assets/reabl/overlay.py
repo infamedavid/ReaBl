@@ -138,7 +138,11 @@ def _get_overlay_lines(scene, props):
 
     if bool(getattr(props, "overlay_show_sync_status", True)):
         sync_status = str(control_state.get("sync_status", "NO_SIGNAL"))
-        if sync_status in {"NO_SIGNAL", "DRIFT", "RESYNC", "OUT_OF_RANGE"}:
+        remote_transport = str(control_state.get("remote_transport", "unknown"))
+        should_show_no_signal = remote_transport not in {"stopped", "paused"}
+        if sync_status in {"DRIFT", "RESYNC", "OUT_OF_RANGE"} or (
+            sync_status == "NO_SIGNAL" and should_show_no_signal
+        ):
             secondary_lines.append(f"Sync: {sync_status}")
 
     if bool(getattr(props, "overlay_show_remote_transport", False)):
