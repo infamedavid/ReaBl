@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ReaBlBitwigExtension extends ControllerExtension
 {
@@ -35,18 +36,23 @@ public class ReaBlBitwigExtension extends ControllerExtension
 
     // Small delay so Bitwig finishes updating values after leaving play state.
     private static final int STOP_DECISION_DELAY_MS = 30;
+    private static final double PAUSE_CONFIDENT_EPSILON_SECONDS = 0.020;
+    private static final long DROP_LOG_THROTTLE_MS = 5000;
 
-    private DatagramSocket socket;
-    private InetAddress remoteAddress;
+    private volatile DatagramSocket socket;
+    private volatile InetAddress remoteAddress;
     private Transport transport;
+    private final AtomicLong transportEpoch = new AtomicLong(0);
 
     private volatile boolean wasPlaying = false;
+    private volatile boolean isPlayingNow = false;
     private volatile double playPositionSeconds = 0.0;
     private volatile double playStartPositionSeconds = 0.0;
     private volatile double lastPlayingPositionSeconds = 0.0;
+    private volatile long lastDroppedSendLogMillis = 0L;
 
-    private String reablHost = DEFAULT_REABL_HOST;
-    private int reablPort = DEFAULT_REABL_PORT;
+    private volatile String reablHost = DEFAULT_REABL_HOST;
+    private volatile int reablPort = DEFAULT_REABL_PORT;
 
     protected ReaBlBitwigExtension(
         final ReaBlBitwigDefinition definition,
@@ -85,6 +91,9 @@ public class ReaBlBitwigExtension extends ControllerExtension
         // General play / not playing state.
         transport.isPlaying().addValueObserver(isPlaying ->
         {
+            isPlayingNow = isPlaying;
+            final long epoch = transportEpoch.incrementAndGet();
+
             if (isPlaying)
             {
                 wasPlaying = true;
@@ -99,7 +108,10 @@ public class ReaBlBitwigExtension extends ControllerExtension
             {
                 wasPlaying = false;
                 final double stoppedAt = lastPlayingPositionSeconds;
-                host.scheduleTask(() -> decideAndSendStoppedState(stoppedAt), STOP_DECISION_DELAY_MS);
+                host.scheduleTask(
+                    () -> decideAndSendStoppedState(stoppedAt, epoch),
+                    STOP_DECISION_DELAY_MS
+                );
             }
         });
 
@@ -219,8 +231,13 @@ public class ReaBlBitwigExtension extends ControllerExtension
         remoteAddress = null;
     }
 
-    private void decideAndSendStoppedState(final double stoppedAtSeconds)
+    private void decideAndSendStoppedState(final double stoppedAtSeconds, final long expectedEpoch)
     {
+        if (expectedEpoch != transportEpoch.get() || isPlayingNow)
+        {
+            return;
+        }
+
         // Reaffirm timeline when leaving playback.
         sendOscFloat("/reabl/state/time", (float) stoppedAtSeconds);
 
@@ -240,12 +257,25 @@ public class ReaBlBitwigExtension extends ControllerExtension
                 // if play-start marker lands where playback stopped,
                 // treat it as pause; otherwise treat it as stop.
                 final double delta = Math.abs(playStartPositionSeconds - stoppedAtSeconds);
-                if (delta <= PAUSE_EPSILON_SECONDS)
+                if (!Double.isFinite(delta))
+                {
+                    sendOscInt("/reabl/transport/stop", 1);
+                    return;
+                }
+
+                if (delta <= PAUSE_CONFIDENT_EPSILON_SECONDS)
                 {
                     sendOscInt("/reabl/transport/pause", 1);
                 }
                 else
                 {
+                    if (delta <= PAUSE_EPSILON_SECONDS)
+                    {
+                        getHost().println(
+                            "ReaBl Bitwig Bridge: ambiguous stop/pause delta=" + delta +
+                            "s, falling back to stop."
+                        );
+                    }
                     sendOscInt("/reabl/transport/stop", 1);
                 }
         }
@@ -253,8 +283,13 @@ public class ReaBlBitwigExtension extends ControllerExtension
 
     private void sendOscInt(final String address, final int value)
     {
-        if (socket == null || remoteAddress == null)
+        final DatagramSocket activeSocket = socket;
+        final InetAddress activeRemoteAddress = remoteAddress;
+        final int activePort = reablPort;
+
+        if (activeSocket == null || activeRemoteAddress == null || activeSocket.isClosed())
         {
+            logDroppedSendThrottled(address);
             return;
         }
 
@@ -264,10 +299,10 @@ public class ReaBlBitwigExtension extends ControllerExtension
             DatagramPacket packet = new DatagramPacket(
                 packetData,
                 packetData.length,
-                remoteAddress,
-                reablPort
+                activeRemoteAddress,
+                activePort
             );
-            socket.send(packet);
+            activeSocket.send(packet);
         }
         catch (Exception e)
         {
@@ -277,8 +312,13 @@ public class ReaBlBitwigExtension extends ControllerExtension
 
     private void sendOscFloat(final String address, final float value)
     {
-        if (socket == null || remoteAddress == null)
+        final DatagramSocket activeSocket = socket;
+        final InetAddress activeRemoteAddress = remoteAddress;
+        final int activePort = reablPort;
+
+        if (activeSocket == null || activeRemoteAddress == null || activeSocket.isClosed())
         {
+            logDroppedSendThrottled(address);
             return;
         }
 
@@ -288,15 +328,30 @@ public class ReaBlBitwigExtension extends ControllerExtension
             DatagramPacket packet = new DatagramPacket(
                 packetData,
                 packetData.length,
-                remoteAddress,
-                reablPort
+                activeRemoteAddress,
+                activePort
             );
-            socket.send(packet);
+            activeSocket.send(packet);
         }
         catch (Exception e)
         {
             getHost().println("ReaBl Bitwig Bridge: failed sending float OSC: " + e.getMessage());
         }
+    }
+
+    private synchronized void logDroppedSendThrottled(final String address)
+    {
+        final long nowMillis = System.currentTimeMillis();
+        if (nowMillis - lastDroppedSendLogMillis < DROP_LOG_THROTTLE_MS)
+        {
+            return;
+        }
+
+        lastDroppedSendLogMillis = nowMillis;
+        getHost().println(
+            "ReaBl Bitwig Bridge: dropping OSC " + address +
+            " because connection is not ready (" + reablHost + ":" + reablPort + ")."
+        );
     }
 
     private byte[] buildOscIntMessage(final String address, final int value)
