@@ -18,6 +18,7 @@ if "state" in locals():
     importlib.reload(transport_sync)
     importlib.reload(osc_server)
     importlib.reload(sync_timer)
+    importlib.reload(overlay)
     importlib.reload(ui)
 else:
     from . import state
@@ -25,6 +26,7 @@ else:
     from . import transport_sync
     from . import osc_server
     from . import sync_timer
+    from . import overlay
     from . import ui
 
 
@@ -34,6 +36,7 @@ modules = (
     transport_sync,
     osc_server,
     sync_timer,
+    overlay,
     ui,
 )
 

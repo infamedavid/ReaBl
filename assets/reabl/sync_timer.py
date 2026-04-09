@@ -6,6 +6,7 @@ import bpy
 from .state import control_state, reset_runtime_state
 from . import osc_server
 from . import transport_sync
+from . import overlay
 
 
 _TIMER_REGISTERED = False
@@ -18,6 +19,10 @@ _PUSH_RETRY_SEC = 1.50
 
 def _now():
     return time.perf_counter()
+
+
+def _request_overlay_redraw():
+    overlay.tag_redraw_areas()
 
 
 def _get_props():
@@ -348,10 +353,12 @@ def _ensure_server_state(props):
 def sync_timer_callback():
     scene = bpy.context.scene
     if scene is None:
+        _request_overlay_redraw()
         return 0.1
 
     props = _get_props()
     if props is None:
+        _request_overlay_redraw()
         return 0.1
 
     if not osc_server.dependencies_ok():
@@ -363,6 +370,7 @@ def sync_timer_callback():
         control_state["applied_transport_state"] = "UNKNOWN"
         control_state["last_error"] = osc_server.get_dependency_error_message()
         _set_status("NO_SIGNAL")
+        _request_overlay_redraw()
         return 0.1
 
     if not props.sync_enabled:
@@ -373,6 +381,7 @@ def sync_timer_callback():
             reset_runtime_state()
             control_state["sync_enabled"] = False
 
+        _request_overlay_redraw()
         return 0.1
 
     control_state["sync_enabled"] = True
@@ -395,6 +404,7 @@ def sync_timer_callback():
         else:
             _handle_blender_idle_follow(scene, props)
 
+    _request_overlay_redraw()
     return 0.05
 
 
